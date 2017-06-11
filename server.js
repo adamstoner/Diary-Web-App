@@ -28,7 +28,15 @@ const PROMPTS = ['List the things that make you feel powerful.',
 'Find a quote that you like and write it down here.',
 'List something you should ignore.',
 'Talk about something you are excited about next month.',
-'List three traits you would like others to see in you.'];
+'List three traits you would like others to see in you.',
+'Who made you feel good this week?',
+'What was the biggest mistake you made this week?',
+'What did you do this week that moved you closer to reaching your goals?',
+'Is there anything you did this week that you wish you’d done differently?',
+'What did you most enjoy doing this week?',
+'How did you procrastinate on important tasks this week?',
+'What did you learn this week?',
+'What’s the funniest thing that happened to you this week?'];
 
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -48,13 +56,14 @@ app.use(express.static('public'));
 let db = null;
 let diaries_collection = null;
 
+
 async function main() {
   const DATABASE_NAME = 'final_project';
   const MONGO_URL = `mongodb://localhost:27017/${DATABASE_NAME}`;
 
   // The "process.env.MONGODB_URI" is needed to work with Heroku.
   db = await MongoClient.connect(process.env.MONGODB_URI || MONGO_URL);
-  diaries_collection = db.collection('diaries');
+//  diaries_collection = db.collection('diaries');
 
 
   // The "process.env.PORT" is needed to work with Heroku.
@@ -66,24 +75,20 @@ async function main() {
 async function onCreateDiary(req, res) {
   let id = new ObjectID();
   console.log("Create entry: ");
-  console.log("ID: ", id);
   const routeParams = req.params;
-  let unique_id = id;
+  let unique_id = id.toString();
+  console.log("String: ", unique_id);
   let entry = {
-    prompt = "";
-    content = "";
-    date = "";
+    prompt :"",
+    content : "",
+    date: ""
   }
-  let doc = {
-    id : unique_id,
-    entries : db.collection(unique_id).insert(entry)
-  };
-  diaries_collection.insertOne(doc, function(err, result){
-
-  });
-
-
-  const response = doc;
+  diaries_collection = await db.collection(unique_id);
+  diaries_collection.insert(entry);
+  //console.log("Diary collection: ", diaries_collection);
+  const response = {
+    id: unique_id
+  }
   console.log("response: ", response);
   console.log("In createDiary");
   res.json(response);
@@ -92,63 +97,84 @@ async function onCreateDiary(req, res) {
 
 async function initializeDiary(req, res) {
   const routeParams = req.params;
-
   const placeholders = {
     id: routeParams.journal_id
   };
   console.log("In Diary ID ", placeholders.id);
   res.render('lookup', placeholders);
 }
+
 async function getDiaryEntry(req, res){
+
+  console.log("getEntry method");
   const routeParams = req.params;
   const journal_id = routeParams.journal_id;
-  const currDate = routeParams.date;
+  const currDate = routeParams.month + '/'+routeParams.day+"/"+routeParams.year;
   let prompt = "";
-  let contents = "";
+  let content = "";
   let date = "";
-  let entry;
-  const query = {
-    id: journal_id
-  };
-  const entryQuery = {
-    date: routeParams.date
-  };
-  let diary = await diaries_collection.findOne(query);
-  let entry = await diary.entries.findOne(entryQuery);
+  let entry = null;
 
+  const entryQuery = {
+    date: currDate
+  };
+  entry = await diaries_collection.findOne(entryQuery);
   //I'm assuming that the diary always exists here
   if(entry){
-
+    console.log("Entry already present: ", entry.content);
   }else{
+      console.log("Entry not present: ");
       entry = {
-          prompt = [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-          content = "";
-          date = routeParams.date;
+          prompt : PROMPTS[Math.floor(Math.random()*PROMPTS.length)],
+          content : "",
+          date : currDate
       }
-      diary.entries.insertOne(entry, function(err, result){
+      diaries_collection.insertOne(entry, function(err, result){
 
       });
+  }
+  entry = await diaries_collection.findOne(entryQuery);
+  if(entry){
+    console.log("Inserted : ", entry);
+  }else{
+    console.log("Did not insert!!!");
   }
   console.log("Entry: ",entry);
   res.json(entry);
 
 }
 
-async function updateEntry(req, res){
+async function updateDiaryEntry(req, res){
+  console.log("In update entry method");
   const routeParams = req.params;
   const journal_id = routeParams.journal_id;
-  const currDate = routeParams.date;
+  const currDate = routeParams.month + '/'+routeParams.day+"/"+routeParams.year;
   const textContent = routeParams.content;
+  console.log("Text content: ", textContent);
   const query = {
     id: journal_id
   };
   const entryQuery = {
-    date: routeParams.date
+    date: currDate
   };
+  let entry = await diaries_collection.findOne(entryQuery);
+  if(entry){
+    console.log("FOUND IT: ", entry);
+  }else{
+    console.log("Did not find it!!!");
+  }
 
-  let diary = await diaries_collection.findOne(query);
-  let results= await diary.entries.update(entryQuery, {content:textContent});
 
+  let results = await diaries_collection.updateOne(entryQuery, {$set:{content:textContent}} );
+  entry = await diaries_collection.findOne(entryQuery);
+  if(entry){
+    console.log("STILL THERE AFTER UPDATE", entry);
+  }else{
+    console.log("CAN'T FIND IT AFTER UPDATE ");
+  }
+
+  //console.log("ENTRY ENTRY ENTRY was it updated? ", entry.content);
+  //console.log("Done updating for : ", entryQuery, "diaries_collection: ", diaries_collection);
   //update the entry
 
 
@@ -164,8 +190,8 @@ app.get('/create', onCreateDiary);
 app.get('/id/:journal_id', initializeDiary);
 
 app.get('/', onViewIndex);
-app.get('/getEntry/:journal_id-:date', getDiaryEntry);
-app.get('/updateEntry/:journal_id-:date/:content',updateDiaryEntry);
+app.get('/getEntry/:journal_id/:month/:day/:year', getDiaryEntry);
+app.get('/updateEntry/:journal_id/:month/:day/:year/:content',updateDiaryEntry);
 
 main();
 

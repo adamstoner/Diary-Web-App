@@ -36,59 +36,66 @@ class DiaryContainer{
     this.journalId = journalId;
     this.diaryElement = document.querySelector('#text-box');
     this.diaryEntries = {};
-    //TODO: Retrieve diary with relevant id, and insert entry
-    const results = await fetch('/getEntry/'+journalId+'/'+currDate);
-    const entry = await results.json();
-    this.diaryEntries[currDate] = [entry.prompt, entry.content]; //[PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
+    this.containerElement = diaryContainer;
+    this.currDate = currDate;
     this.startDate = currDate;
-    this.currDate  = currDate;
     this.dateElement = document.querySelector('#date');
     this.promptElement = document.querySelector('#prompt');
-
-    this.dateElement.innerHTML =  currDate;
-
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];
-    console.log(this.promptElement.innerHTML);
-    this.containerElement = diaryContainer;
     this.showEntry = this.showEntry.bind(this);
-    this.containerElement.addEventListener('click', this.showEntry);
+    this.initialize = this.initialize.bind(this);
     this.editEntry = this.editEntry.bind(this);
-    this.diaryElement.addEventListener('click', this.editEntry);
+    this.startDay = this.startDay.bind(this);
+    this.prevDay = this.prevDay.bind(this);
+    this.nextDay = this.nextDay.bind(this);
     this.containerElement.classList.remove('inactive');
     this.startButton= document.querySelector('#start');
     this.prevButton = document.querySelector('#prev');
     this.nextButton = document.querySelector('#next');
-    this.startDay = this.startDay.bind(this);
-    this.prevDay = this.prevDay.bind(this);
-    this.nextDay = this.nextDay.bind(this);
-    this.prevButton.addEventListener('click', this.prevDay);
-    this.startButton.addEventListener('click', this.startDay);
-    this.nextButton.addEventListener('click', this.nextDay);
+
+
+
 
 
   }
 
-  showEntry(event){
+  async initialize(){
+    console.log("In initialize function");
+    //TODO: Retrieve diary with relevant id, and insert entry
+    const results = await fetch('/getEntry/'+this.journalId+'/'+this.currDate);
+    console.log("results");
+    const entry = await results.json();
+    console.log("entry json: ", entry);
+    this.diaryEntries[this.currDate] = [entry.prompt, entry.content]; //[PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
+    this.dateElement.innerHTML =  this.currDate;
+    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];
+    this.containerElement.addEventListener('click', this.showEntry);
+    this.diaryElement.addEventListener('click', this.editEntry);
+    this.prevButton.addEventListener('click', this.prevDay);
+    this.startButton.addEventListener('click', this.startDay);
+    this.nextButton.addEventListener('click', this.nextDay);
+  }
+
+  async showEntry(event){
     console.log("In showEntry listener");
     let currText = this.diaryElement.value;
     console.log("Curr text: ", currText);
     const result = await fetch('/updateEntry/'+this.journalId+'/'+this.currDate+'/'+currText);
-  //  this.diaryEntries[this.currDate][1] = currText;
-  //  this.diaryElement.disabled = true;
     this.diaryElement.classList.add('pink');
 
   }
-  prevDay(){
+  async prevDay(){
+    console.log("In prev day listener");
     event.stopPropagation();
     var date = new Date(this.currDate);
     date.setDate(date.getDate()-1);
     let dateStr = date.toLocaleString().substr(0, date.toLocaleString().indexOf(','));
-    console.log("curr date: ", dateStr);
     this.currDate = dateStr;
     this.dateElement.innerHTML =  this.currDate;
 
     //let entry = this.diaryEntries[this.currDate];
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const entry = await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const result = await entry.json();
+    console.log("result in prevDay: ", result);
   /*  if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
     this.diaryElement.value = this.diaryEntries[this.currDate][1];
     this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
@@ -98,7 +105,8 @@ class DiaryContainer{
 
   }
 
-  nextDay(){
+  async nextDay(){
+    console.log("In next day listener");
     event.stopPropagation();
     var date = new Date(this.currDate);
     date.setDate(date.getDate()+1);
@@ -113,21 +121,25 @@ class DiaryContainer{
     console.log(this.diaryEntries[this.currDate]);
     this.diaryElement.value = this.diaryEntries[this.currDate][1];
     this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const entry= await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const result = await entry.json();
     this.diaryElement.value = result.content;
     this.promptElement.innerHTML = result.prompt;
 
 
   }
 
-  startDay(){
+async startDay(){
+    console.log("In startDay listener");
     event.stopPropagation();
     this.currDate = this.startDate;
     /*this.dateElement.innerHTML =  this.currDate;
     if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
     this.diaryElement.value = this.diaryEntries[this.currDate][1];
     this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const entry = await fetch('/getEntry/'+journalId+'/'+this.currDate);
+    const result = await entry.json();
+
     this.diaryElement.value = result.content;
     this.promptElement.innerHTML = result.prompt;
   }
