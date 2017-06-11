@@ -30,118 +30,145 @@ const PROMPTS = ['List the things that make you feel powerful.',
 'Talk about something you are excited about next month.',
 'List three traits you would like others to see in you.'];
 
-class DiaryContainer{
-  constructor(diaryContainer, currDate, journalId){
-    console.log("Journal id: ", journalId);
-    this.journalId = journalId;
-    this.diaryElement = document.querySelector('#text-box');
-    this.diaryEntries = {};
-    //TODO: Retrieve diary with relevant id, and insert entry
-    const results = await fetch('/getEntry/'+journalId+'/'+currDate);
-    const entry = await results.json();
-    this.diaryEntries[currDate] = [entry.prompt, entry.content]; //[PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.startDate = currDate;
-    this.currDate  = currDate;
-    this.dateElement = document.querySelector('#date');
-    this.promptElement = document.querySelector('#prompt');
+const bodyParser = require('body-parser');
+const express = require('express');
 
-    this.dateElement.innerHTML =  currDate;
+const MongoClient = require('mongodb').MongoClient;
+const ObjectID = require('mongodb').ObjectID;
+const exphbs  = require('express-handlebars');
 
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];
-    console.log(this.promptElement.innerHTML);
-    this.containerElement = diaryContainer;
-    this.showEntry = this.showEntry.bind(this);
-    this.containerElement.addEventListener('click', this.showEntry);
-    this.editEntry = this.editEntry.bind(this);
-    this.diaryElement.addEventListener('click', this.editEntry);
-    this.containerElement.classList.remove('inactive');
-    this.startButton= document.querySelector('#start');
-    this.prevButton = document.querySelector('#prev');
-    this.nextButton = document.querySelector('#next');
-    this.startDay = this.startDay.bind(this);
-    this.prevDay = this.prevDay.bind(this);
-    this.nextDay = this.nextDay.bind(this);
-    this.prevButton.addEventListener('click', this.prevDay);
-    this.startButton.addEventListener('click', this.startDay);
-    this.nextButton.addEventListener('click', this.nextDay);
+const app = express();
+const hbs = exphbs.create();
+
+const jsonParser = bodyParser.json();
+app.engine('handlebars', hbs.engine);
+app.set('view engine', 'handlebars');
+app.use(express.static('public'));
+
+let db = null;
+let diaries_collection = null;
+
+async function main() {
+  const DATABASE_NAME = 'final_project';
+  const MONGO_URL = `mongodb://localhost:27017/${DATABASE_NAME}`;
+
+  // The "process.env.MONGODB_URI" is needed to work with Heroku.
+  db = await MongoClient.connect(process.env.MONGODB_URI || MONGO_URL);
+  diaries_collection = db.collection('diaries');
 
 
+  // The "process.env.PORT" is needed to work with Heroku.
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Server listening on port ${port}!`);
+};
+
+async function onCreateDiary(req, res) {
+  let id = new ObjectID();
+  console.log("Create entry: ");
+  console.log("ID: ", id);
+  const routeParams = req.params;
+  let unique_id = id;
+  let entry = {
+    prompt = "";
+    content = "";
+    date = "";
   }
+  let doc = {
+    id : unique_id,
+    entries : db.collection(unique_id).insert(entry)
+  };
+  diaries_collection.insertOne(doc, function(err, result){
 
-  showEntry(event){
-    console.log("In showEntry listener");
-    let currText = this.diaryElement.value;
-    console.log("Curr text: ", currText);
-    const result = await fetch('/updateEntry/'+this.journalId+'/'+this.currDate+'/'+currText);
-  //  this.diaryEntries[this.currDate][1] = currText;
-  //  this.diaryElement.disabled = true;
-    this.diaryElement.classList.add('pink');
+  });
 
+
+  const response = doc;
+  console.log("response: ", response);
+  console.log("In createDiary");
+  res.json(response);
+
+}
+
+async function initializeDiary(req, res) {
+  const routeParams = req.params;
+
+  const placeholders = {
+    id: routeParams.journal_id
+  };
+  console.log("In Diary ID ", placeholders.id);
+  res.render('lookup', placeholders);
+}
+async function getDiaryEntry(req, res){
+  const routeParams = req.params;
+  const journal_id = routeParams.journal_id;
+  const currDate = routeParams.date;
+  let prompt = "";
+  let contents = "";
+  let date = "";
+  let entry;
+  const query = {
+    id: journal_id
+  };
+  const entryQuery = {
+    date: routeParams.date
+  };
+  let diary = await diaries_collection.findOne(query);
+  let entry = await diary.entries.findOne(entryQuery);
+
+  //I'm assuming that the diary always exists here
+  if(entry){
+
+  }else{
+      entry = {
+          prompt = [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
+          content = "";
+          date = routeParams.date;
+      }
+      diary.entries.insertOne(entry, function(err, result){
+
+      });
   }
-  prevDay(){
-    event.stopPropagation();
-    var date = new Date(this.currDate);
-    date.setDate(date.getDate()-1);
-    let dateStr = date.toLocaleString().substr(0, date.toLocaleString().indexOf(','));
-    console.log("curr date: ", dateStr);
-    this.currDate = dateStr;
-    this.dateElement.innerHTML =  this.currDate;
+  console.log("Entry: ",entry);
+  res.json(entry);
 
-    //let entry = this.diaryEntries[this.currDate];
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
-  /*  if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
-    this.diaryElement.value = result.content;
-    this.promptElement.innerHTML = result.prompt;
+}
 
+async function updateEntry(req, res){
+  const routeParams = req.params;
+  const journal_id = routeParams.journal_id;
+  const currDate = routeParams.date;
+  const textContent = routeParams.content;
+  const query = {
+    id: journal_id
+  };
+  const entryQuery = {
+    date: routeParams.date
+  };
 
-  }
+  let diary = await diaries_collection.findOne(query);
+  let results= await diary.entries.update(entryQuery, {content:textContent});
 
-  nextDay(){
-    event.stopPropagation();
-    var date = new Date(this.currDate);
-    date.setDate(date.getDate()+1);
-    let dateStr = date.toLocaleString().substr(0, date.toLocaleString().indexOf(','));
-    console.log("curr date: ", dateStr);
-    this.currDate = dateStr;
-    this.dateElement.innerHTML =  this.currDate;
+  //update the entry
 
-  /*  let entry = this.diaryEntries[this.currDate];
-    console.log('entry: ',entry);
-    if(entry === undefined) this.diaryEntries[this.currDate] = [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    console.log(this.diaryEntries[this.currDate]);
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
-    this.diaryElement.value = result.content;
-    this.promptElement.innerHTML = result.prompt;
-
-
-  }
-
-  startDay(){
-    event.stopPropagation();
-    this.currDate = this.startDate;
-    /*this.dateElement.innerHTML =  this.currDate;
-    if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
-    const result = await fetch('/getEntry/'+journalId+'/'+this.currDate);
-    this.diaryElement.value = result.content;
-    this.promptElement.innerHTML = result.prompt;
-  }
-
-
-
-  editEntry(event){
-    event.stopPropagation();
-    console.log("In edit event listener");
-    console.log(this.containerElement);
-    this.diaryElement.disabled = false;
-    this.diaryElement.classList.remove('pink');
-
-  }
 
 
 }
+
+//app.get('/goTo/:journal_id', initializeDiary);
+//pp.get('/id/', onCreateDiary);
+function onViewIndex(req, res) {
+  res.render('index');
+}
+app.get('/create', onCreateDiary);
+app.get('/id/:journal_id', initializeDiary);
+
+app.get('/', onViewIndex);
+app.get('/getEntry/:journal_id-:date', getDiaryEntry);
+app.get('/updateEntry/:journal_id-:date/:content',updateDiaryEntry);
+
+main();
+
+////////////////////////////////////////////////////////////////////////////////
+
+// TODO(you): Add at least 1 GET route and 1 POST route.
