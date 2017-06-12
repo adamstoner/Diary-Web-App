@@ -130,7 +130,7 @@ async function getDiaryEntry(req, res){
           date : currDate
       }
       diaries_collection.insertOne(entry, function(err, result){
-
+          console.log(err);
       });
   }
   entry = await diaries_collection.findOne(entryQuery);
