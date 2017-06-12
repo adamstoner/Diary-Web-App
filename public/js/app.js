@@ -10,9 +10,7 @@
     const result = await fetch('/create');
     const json = await result.json();
     console.log(json.id);
-    const link  = document.querySelector('#word');
-    link.innerHTML = "Click to go to diary!";
-    link.href  = `/id/${json.id}`;
+    window.location.href = `/id/${json.id}`;
 
    
 
