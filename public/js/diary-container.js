@@ -1,34 +1,20 @@
-const PROMPTS = ['List the things that make you feel powerful.',
-'What is something that made you laugh today?',
-'List the movies that you want to watch.',
-'List the things that make you feel peaceful.',
-'List your greatest comforts.',
-'What is something that brightens your day?',
-'List three things you accomplished today.',
-'What is something you look forward to every day?',
-'What is a game that you like to play?',
-'What is your Sunday ritual?',
-'List the most memorable moments of this month so far.',
-'List some things you want to do outdoors.',
-'If you could live anywhere you wanted, where would you live?',
-'List what you would spend a million dollars on, just for you.',
-'When do you feel most energized?',
-'List the things that make you feel excited.',
-'List your favorite snacks or treats.',
-'What has you busy this week?',
-'List the people you admire.',
-'List the happiest moments of your year so far.',
-'What hobby would you like to pick up?',
-'List the ways you love to have fun.',
-'Describe something you learned today',
-'List something fun you did or will do today.',
-'What is your dream job?',
-'List the things that inspire you.',
-'List something you did today that you are proud of.',
-'Find a quote that you like and write it down here.',
-'List something you should ignore.',
-'Talk about something you are excited about next month.',
-'List three traits you would like others to see in you.'];
+
+
+const MONTHS = {
+  '1': 'Jan',
+  '2': 'Feb',
+  '3': 'March',
+  '4': 'April',
+  '5': 'May',
+  '6': 'June',
+  '7': 'July',
+  '8': 'August',
+  '9': 'Sept',
+  '10': 'Oct',
+  '11': 'Nov',
+  '12': 'Dec'
+}
+
 
 class DiaryContainer{
   constructor(diaryContainer, currDate, journalId){
@@ -61,13 +47,16 @@ class DiaryContainer{
   async initialize(){
     console.log("In initialize function");
     //TODO: Retrieve diary with relevant id, and insert entry
-    const results = await fetch('/getEntry/'+this.journalId+'/'+this.currDate);
+    const entry = await fetch('/getEntry/'+this.journalId+'/'+this.currDate);
     console.log("results");
-    const entry = await results.json();
+    const result = await entry.json();
     console.log("entry json: ", entry);
-    this.diaryEntries[this.currDate] = [entry.prompt, entry.content]; //[PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.dateElement.innerHTML =  this.currDate;
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];
+    let res =  this.currDate.split('/');
+    this.dateElement.innerHTML = MONTHS[res[0]] +" "+res[1];
+    this.promptElement.innerHTML = result.prompt;
+    console.log("About to put in diary");
+    if(result.content === "") result.content = "Your entry here";
+    this.diaryElement.value = result.content;
     this.containerElement.addEventListener('click', this.showEntry);
     this.diaryElement.addEventListener('click', this.editEntry);
     this.prevButton.addEventListener('click', this.prevDay);
@@ -79,26 +68,27 @@ class DiaryContainer{
     console.log("In showEntry listener");
     let currText = this.diaryElement.value;
     console.log("Curr text: ", currText);
-    const result = await fetch('/updateEntry/'+this.journalId+'/'+this.currDate+'/'+currText);
     this.diaryElement.classList.add('pink');
+    const result = await fetch('/updateEntry/'+this.journalId+'/'+this.currDate+'/'+currText);
+
+    console.log("I'm here");
+    this.diaryElement.className += 'pink';
 
   }
+
   async prevDay(){
     console.log("In prev day listener");
     event.stopPropagation();
     var date = new Date(this.currDate);
     date.setDate(date.getDate()-1);
+
     let dateStr = date.toLocaleString().substr(0, date.toLocaleString().indexOf(','));
     this.currDate = dateStr;
-    this.dateElement.innerHTML =  this.currDate;
-
-    //let entry = this.diaryEntries[this.currDate];
+    let res =  this.currDate.split('/');
+    this.dateElement.innerHTML = MONTHS[res[0]] +" "+res[1];
     const entry = await fetch('/getEntry/'+journalId+'/'+this.currDate);
     const result = await entry.json();
     console.log("result in prevDay: ", result);
-  /*  if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
     this.diaryElement.value = result.content;
     this.promptElement.innerHTML = result.prompt;
 
@@ -113,14 +103,8 @@ class DiaryContainer{
     let dateStr = date.toLocaleString().substr(0, date.toLocaleString().indexOf(','));
     console.log("curr date: ", dateStr);
     this.currDate = dateStr;
-    this.dateElement.innerHTML =  this.currDate;
-
-  /*  let entry = this.diaryEntries[this.currDate];
-    console.log('entry: ',entry);
-    if(entry === undefined) this.diaryEntries[this.currDate] = [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    console.log(this.diaryEntries[this.currDate]);
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
+    let res =  this.currDate.split('/');
+    this.dateElement.innerHTML = MONTHS[res[0]] +" "+res[1];
     const entry= await fetch('/getEntry/'+journalId+'/'+this.currDate);
     const result = await entry.json();
     this.diaryElement.value = result.content;
@@ -133,14 +117,12 @@ async startDay(){
     console.log("In startDay listener");
     event.stopPropagation();
     this.currDate = this.startDate;
-    /*this.dateElement.innerHTML =  this.currDate;
-    if(entry === undefined) this.diaryEntries[this.currDate]= [PROMPTS[Math.floor(Math.random()*PROMPTS.length)], ""];
-    this.diaryElement.value = this.diaryEntries[this.currDate][1];
-    this.promptElement.innerHTML = this.diaryEntries[this.currDate][0];*/
     const entry = await fetch('/getEntry/'+journalId+'/'+this.currDate);
     const result = await entry.json();
-
     this.diaryElement.value = result.content;
+    let res =  this.currDate.split('/');
+
+    this.dateElement.innerHTML = MONTHS[res[0]] +" "+res[1];
     this.promptElement.innerHTML = result.prompt;
   }
 
