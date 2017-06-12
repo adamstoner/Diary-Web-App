@@ -96,6 +96,7 @@ height: calc(100vh - 100px);
 }
 
 #to-diary:hover{
+  transition-duration: 0.25s;
   background-color: black;
   color: white;
   font-family: 'Merriweather', serif;
