@@ -195,6 +195,4 @@ app.get('/updateEntry/:journal_id/:month/:day/:year/:content',updateDiaryEntry);
 
 main();
 
-////////////////////////////////////////////////////////////////////////////////
 
-// TODO(you): Add at least 1 GET route and 1 POST route.
