@@ -101,7 +101,7 @@ async function initializeDiary(req, res) {
     id: routeParams.journal_id
   };
   console.log("In Diary ID ", placeholders.id);
-  res.render('lookup', placeholders);
+  res.render('entry', placeholders);
 }
 
 async function getDiaryEntry(req, res){
